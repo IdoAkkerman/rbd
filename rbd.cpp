@@ -23,7 +23,9 @@
 #include <json/json.h>
 #include <assert.h>
 
-#include "linalg.hpp"
+#include "vector.hpp"
+#include "matrix.hpp"
+#include "state.hpp"
 #include "rigid-body.hpp"
 
 using namespace precice;

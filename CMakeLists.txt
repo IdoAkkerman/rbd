@@ -46,7 +46,7 @@ list(APPEND LIBRARIES "jsoncpp_lib")
 #-------------------------------------------------------------------------------
 # Build executable
 #-------------------------------------------------------------------------------
-add_executable(rbd rbd.cpp linalg.hpp  rigid-body.hpp)
+add_executable(rbd rbd.cpp vector.hpp matrix.hpp state.hpp rigid-body.hpp)
 target_link_libraries(rbd PRIVATE  ${LIBRARIES})
 install(TARGETS rbd DESTINATION bin)
 
