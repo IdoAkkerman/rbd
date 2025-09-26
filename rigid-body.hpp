@@ -77,20 +77,154 @@ Matrix GetRotation(Vector rad)
 //=========================================================
 // Define the rigid body class
 //=========================================================
+class State
+{
+public:
+   int dim;
+   Vector x,v;  // Displacement & Velocity;
+   Matrix R;    // Rotation matrix
+   Vector w;    // Angular velocity
+
+   Matrix I;    // Inertia tensor --> in current configuration
+
+   State(){};
+
+   State(State &org)
+   {
+      dim = org.dim;
+      x = org.x;
+      v = org.v;
+      R = org.R;
+      w = org.w;
+      I = org.I;
+   }
+
+   void Initialize(int dim_)
+   {
+       dim = dim_;
+       Resize(dim, x);
+       Resize(dim, v);
+       Resize(dim, w);
+       Resize(dim, R);
+       for (int i = 0;Vector &vec: R)
+          vec[i++] = 1.0;
+       Resize(dim, I);
+   }
+
+   void SetInertiaTensor(Matrix &I0)
+   {
+      assert(I0.size() == dim);
+      I = R*I0*Transpose(R);
+   }
+
+   void CheckRotation()
+   {
+      // Check rotation matrix
+      Matrix id = R*Transpose(R);
+
+      for (int i = 0; Vector vec: id)
+         vec[i++] -= 1.0;
+      double norm = Norm(id);
+      if (norm > 1e-10)
+      {
+         cout<<" Norm = " << norm<<std::endl
+         Matrix id = R*Transpose(R);
+         ::Print(std::cout, id);
+      }
+      //assert(norm < 1e-12);
+   }
+
+   void Read(Json::Value &data)
+   {
+      // Read state data -- zero if not defined
+      // Displacement
+      if (data.isMember("x"))
+      {
+         json2vector(data["x"], x);
+         assert(x.size() == dim);
+      }
+      else
+      {
+         Resize(dim, x);
+      }
+
+      // Velocity
+      if (data.isMember("v"))
+      {
+         json2vector(data["v"], v);
+         assert(v.size() == dim);
+      }
+      else
+      {
+         Resize(dim, v);
+      }
+
+      // Angular Velocity
+      if (data.isMember("w"))
+      {
+         json2vector(data["w"], w);
+         assert(w.size() == (dim*(dim-1))/2);
+      }
+      else
+      {
+         Resize((dim*(dim-1))/2, w);
+      }
+
+      // Rotation
+      if (data.isMember("angles_deg"))
+      {
+         Vector angles_deg;
+         json2vector(data["angles_deg"], angles_deg);
+         assert(angles_deg.size() == (dim*(dim-1))/2);
+         for (double &d: angles_deg)
+            d *= M_PI/180;
+
+         R = GetRotation(angles_deg);
+      }
+      else if (data.isMember("radians"))
+      {
+         Vector radians;
+         json2vector(data["radians"], radians);
+         assert(radians.size()  == (dim*(dim-1))/2);
+         R = GetRotation(radians);
+      }
+      else if (data.isMember("R"))
+      {
+         json2matrix(data["R"], R);
+         assert(R.size() == dim);
+      }
+      else
+      {
+         Resize(dim, R);
+         for (int i = 0;Vector &vec: R)
+             vec[i++] = 1.0;
+      }
+   };
+
+   void Print(std::ostream &out)
+   {
+      out<<"x = ";::Print(out, x);
+      out<<"v = ";::Print(out, v);
+
+      out<<"R = ";::Print(out, R);
+      out<<"w = ";::Print(out, w);
+   }
+};
+
+//=========================================================
+// Define the rigid body class
+//=========================================================
 class RigidBody
 {
 private:
    int dim;     // Dimension of the problem (2D/3D)
 
    double m;    // Mass
-   Matrix I0;   // Mass moment of inertia tensor
-   Matrix I;    // Mass moment of inertia tensor
+   Matrix I0;    // Mass moment of inertia tensor
 
-   Vector x,v;  // Displacement & Velocity;
-   Matrix R;    // Rotation matrix
-   Vector w;    // Angular velocity
+   double dt_max;
 
-   Vector disp, vel;
+   State state_old, state_new;
 
    void Construct(Json::Value &data)
    {
@@ -100,88 +234,18 @@ private:
       json2matrix(data["I0"],I0);
       assert(I0.size() == dim);
 
-      Json::Value ic = data["initial_condition"];
- 
-      // Read state data -- zero if not defined
-      // Displacement
-      if (ic.isMember("x"))
-      {
-         json2vector(ic["x"], x);
-         assert(x.size() == dim);
-      }
-      else
-      {
-         Resize(dim, x);
-      }
+      // Read integration data
+      dt_max = data.get("dt", 9999999.0).asDouble();
 
-      // Velocity
-      if (ic.isMember("v"))
-      {
-         json2vector(ic["v"], v);
-         assert(v.size() == dim);
-      }
-      else
-      {
-         Resize(dim, v);
-      }
+      // Initialize states
+      state_new.Initialize(dim);
+      state_old.Initialize(dim);
 
-      // Angular Velocity
-      if (ic.isMember("w"))
+      if (data.isMember("initial_condition"))
       {
-         json2vector(ic["w"], w);
-         assert(w.size() == dim);
+         state_old.Read(data["initial_condition"]);
       }
-      else
-      {
-         Resize(dim, w);
-      }
-
-      // Rotation
-      if (ic.isMember("angles_deg"))
-      {
-         Vector angles_deg;
-         json2vector(ic["angles_deg"], angles_deg);
-         assert(angles_deg.size() == (dim*(dim-1))/2);
-         for (double &d: angles_deg)
-            d *= M_PI/180;
-
-         R = GetRotation(angles_deg);
-      }
-      else if (ic.isMember("radians"))
-      {
-         Vector radians;
-         json2vector(ic["radians"], radians);
-         assert(radians.size()  == (dim*(dim-1))/2);
-         R = GetRotation(radians);
-      }
-      else if (ic.isMember("R"))
-      {
-         json2matrix(ic["R"], R);
-         assert(R.size() == dim);
-      }
-      else
-      {
-         Resize(dim, R);
-         for (int i = 0;Vector &vec: R)
-             vec[i++] = 1.0;
-      }
-
-      // Check rotation matrix
-      Matrix id = R*Transpose(R);
-
-      double frobenius = 0.0;
-      for (int i = 0; Vector vec: id)
-      {
-         vec[i++] -= 1.0;
-         for (double d: vec)
-            frobenius += d*d;
-      }
-      if (frobenius  > 1e-12) Print(std::cout, id);
-      assert(frobenius  < 1e-12);
-      
-      // Compute inertia in current configuration
-      Resize(dim, I);
-      RIRT(R,I0,I);
+      state_old.SetInertiaTensor(I0);
    }
 
 public:
@@ -217,35 +281,69 @@ public:
       Construct(data);
    }
 
-   void setForces(Vector forces){};
-   double beginTimeStep(){return 0.0;};
-   void solveTimeStep(double dt){};
+   int GetDim(){return dim;};
 
-   void computeMotion(){};
-   Vector computeDisplacements(){return disp;};
-   Vector computeVelocities(){return vel;};
+   double beginTimeStep(){return dt_max;};
 
-   void reloadOldState(){};
-   void endTimeStep(){};
-   void saveOldState(){};
+   void computeMotion(double dt, Vector &forces)
+   {
+      state_old.Print(std::cout);
+      state_new.Print(std::cout);
+       Vector F(dim);
+       Vector M(dim);
+       int i = 0;
+       for(double &d: F)
+          d = forces[i++];
+       for(double &d: M)
+          d = forces[i++];
 
-   void PrintConfig(std::ostream &out)
+       state_new.v =  state_old.v + (dt/m)*F;
+       state_new.x =  state_old.x + (dt/2)*(state_new.v+state_old.v);
+
+       Matrix eye;
+       Resize(dim, eye);
+       for(int i = 0; Vector & vec: eye)
+          vec[i++] = 1.0;
+
+       for(int i = 0; i < 112; i++)
+       {
+          std::cout<<"i = "<<i<<std::endl;
+          state_new.SetInertiaTensor(I0);
+          Matrix I_inv = Inverse(state_new.I);
+          state_new.w =  I_inv*(state_old.I*state_old.w + dt*I_inv*M);
+
+          Matrix Q = Skew(0.5*(state_new.w+state_old.w));
+          Matrix Qp = eye + (dt/2)*Q;
+          Matrix Qm_inv = Inverse(eye + (-dt/2)*Q);
+
+          Matrix Rn= Qm_inv*Qp*state_old.R;
+          double norm = Norm(state_new.R +(-1.0)*Rn);
+          state_new.R =  Rn;
+          ::Print(std::cout, state_new.R );
+
+          if(norm < 1e-8) break;
+       }
+       state_old.Print(std::cout);
+       state_new.Print(std::cout);
+   };
+
+   void reloadOldState(){}; // Not needed
+   void saveOldState(){};  // Not needed
+   void endTimeStep(){ state_old = state_new; };
+
+   State& GetNewState(){ return state_new; };
+   State& GetOldState(){ return state_old; };
+   
+   void Print(std::ostream &out)
    {
       // Object data
       out<<"Dimension = "<<dim<<std::endl;
       out<<"Mass = "<<m<<std::endl;
-      out<<"I0 = ";Print(out, I0);
+      out<<"I0 = ";::Print(out, I0);
 
       // State data
-      out<<"x = ";Print(out, x);
-      out<<"v = ";Print(out, v);
-
-      out<<"R = ";Print(out, R);
-      out<<"w = ";Print(out, w);
-
-      out<<"I = ";Print(out, I);
-      Matrix id = R*Transpose(R);
-      out<<"RR^t = ";Print(std::cout, id);
+      state_old.Print(out);
+      state_new.Print(out);
    }
 };
 

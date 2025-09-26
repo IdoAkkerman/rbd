@@ -34,8 +34,28 @@ using namespace precice;
 void test(char* rbName)
 {
    RigidBody rb(rbName);
-   rb.PrintConfig(std::cout);
+
+   double dt = 0.1;
+   double t = 0;
+   Vector forces;
+   Resize(2*rb.GetDim(), forces);
+   forces[1] = 1.0;
+   forces[2] = 2.0;
+   forces[4] = 1.0;
+   for(int i = 0; i <100; i++)
+   {
+      std::cout<<"t = "<<t<<std::endl;
+      rb.computeMotion(dt, forces);
+      rb.GetNewState().CheckRotation();
+      rb.endTimeStep();
+      t += dt;
+
+   }
+   rb.Print(std::cout);
 }
+
+   Vector computeDisplacements(){Vector disp; return disp;};
+   Vector computeVelocities(){Vector vel;return vel;};
 
 //=========================================================
 // The main program
@@ -72,7 +92,6 @@ int main(int argc, char **argv)
 
    // Configure rigid body
    RigidBody rb(rbFile);
-
 
    // Configure precice
    Participant participant(solverName, configFile, 0, 1);
@@ -119,17 +138,15 @@ int main(int argc, char **argv)
 
        participant.readData(meshName, "Displacements", vertexIDs, dt, forces);
 
-       rb.setForces(forces);
-       rb.solveTimeStep(dt);
-       rb.computeMotion();
+       rb.computeMotion(dt, forces);
 
        if (displDim != -1)
        {
-          participant.writeData(meshName, "Displacements", vertexIDs, rb.computeDisplacements());
+          participant.writeData(meshName, "Displacements", vertexIDs, computeDisplacements());
        }
        if (velDim != -1)
        {
-           participant.writeData(meshName, "Velocities", vertexIDs, rb.computeVelocities());
+           participant.writeData(meshName, "Velocities", vertexIDs, computeVelocities());
        }
 
        participant.advance(dt);
