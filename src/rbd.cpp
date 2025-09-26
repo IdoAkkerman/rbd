@@ -44,7 +44,7 @@ void test(char* rbName)
    forces[1] = 1.0;
    forces[2] = 2.0;
    forces[4] = 1.0;
-   for(int i = 0; i <100; i++)
+   for (int i = 0; i <100; i++)
    {
       std::cout<<"t = "<<t<<std::endl;
       rb.computeMotion(dt, forces);
@@ -56,8 +56,8 @@ void test(char* rbName)
    rb.Print(std::cout);
 }
 
-   Vector computeDisplacements(){Vector disp; return disp;};
-   Vector computeVelocities(){Vector vel;return vel;};
+Vector computeDisplacements() {Vector disp; return disp;};
+Vector computeVelocities() {Vector vel; return vel;};
 
 //=========================================================
 // The main program
@@ -98,11 +98,12 @@ int main(int argc, char **argv)
    // Configure precice
    Participant participant(solverName, configFile, 0, 1);
 
-   std::vector<double> boundingBox{
-       -9999999, 9999999, // x-axis min and max
-       -9999999, 9999999, // y-axis min and max
-       -9999999, 9999999  // z-axis min and max
-   };
+   std::vector<double> boundingBox
+   {
+      -9999999, 9999999, // x-axis min and max
+         -9999999, 9999999, // y-axis min and max
+         -9999999, 9999999  // z-axis min and max
+      };
 
    // Define region of interest, where we want to obtain the direct access.
    // See also the API documentation of this function for further notes.
@@ -124,43 +125,44 @@ int main(int argc, char **argv)
    const int forceDim = participant.getDataDimensions(meshName, "Forces");
    const int displDim = participant.getDataDimensions(meshName, "Displacements");
    const int velDim = participant.getDataDimensions(meshName, "Velocities");
-   
+
    std::vector<double> forces(vertexSize*dimensions);
 
    // Main timestepping/iteration loop
    while (participant.isCouplingOngoing())
    {
-       if(participant.requiresWritingCheckpoint())
-       {
-          rb.saveOldState();
-       }
-       double preciceDt = participant.getMaxTimeStepSize();
-       double solverDt = rb.beginTimeStep();
-       double dt = std::min(preciceDt, solverDt);
+      if (participant.requiresWritingCheckpoint())
+      {
+         rb.saveOldState();
+      }
+      double preciceDt = participant.getMaxTimeStepSize();
+      double solverDt = rb.beginTimeStep();
+      double dt = std::min(preciceDt, solverDt);
 
-       participant.readData(meshName, "Displacements", vertexIDs, dt, forces);
+      participant.readData(meshName, "Displacements", vertexIDs, dt, forces);
 
-       rb.computeMotion(dt, forces);
+      rb.computeMotion(dt, forces);
 
-       if (displDim != -1)
-       {
-          participant.writeData(meshName, "Displacements", vertexIDs, computeDisplacements());
-       }
-       if (velDim != -1)
-       {
-           participant.writeData(meshName, "Velocities", vertexIDs, computeVelocities());
-       }
+      if (displDim != -1)
+      {
+         participant.writeData(meshName, "Displacements", vertexIDs,
+                               computeDisplacements());
+      }
+      if (velDim != -1)
+      {
+         participant.writeData(meshName, "Velocities", vertexIDs, computeVelocities());
+      }
 
-       participant.advance(dt);
+      participant.advance(dt);
 
-       if (participant.requiresReadingCheckpoint())
-       {
-          rb.reloadOldState();
-       }
-       else
-       {
-          rb.endTimeStep();
-       }
+      if (participant.requiresReadingCheckpoint())
+      {
+         rb.reloadOldState();
+      }
+      else
+      {
+         rb.endTimeStep();
+      }
    }
    participant.finalize();
 

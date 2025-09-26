@@ -30,126 +30,43 @@ typedef std::vector<double> Vector;
 //=========================================================
 // Vector resize
 //=========================================================
-void Resize(int dim, Vector&v)
-{
-   v.resize(dim);
-   for(double &d: v)
-      d = 0;
-}
+void Resize(int dim, Vector&v);
 
 //=========================================================
 // Vector-Scalar product
 //=========================================================
-Vector operator*(const double &c,const Vector &v)
-{
-   int n = v.size();
-
-   Vector prod;
-   Resize(n,prod);
-
-   for(int i = 0; i < n; i++)
-   {
-      prod[i] = v[i]*c;
-   }
-   return prod;
-}
-
-Vector operator*(const Vector &v,const double &c)
-{
-   return c*v;
-}
+Vector operator*(const double &c,const Vector &v);
+Vector operator*(const Vector &v,const double &c);
 
 //=========================================================
 // Vector-Vector innerprod
 //=========================================================
-double operator*(const Vector &v1, const Vector &v2)
-{
-   assert(v1.size() == v2.size());
-   int n = v1.size();
-
-   double prod = 0.0;
-   for(int i = 0; i < n; i++)
-   {
-      prod += v1[i] * v2[i];
-   }
-   return prod;
-}
+double operator*(const Vector &v1, const Vector &v2);
 
 //=========================================================
 // Vector-Vector sum
 //=========================================================
-Vector operator+(const Vector &v1, const Vector &v2)
-{
-   assert(v1.size() == v2.size());
-   int n = v1.size();
-
-   Vector sum;
-   Resize(n,sum);
-
-   for(int i = 0; i < n; i++)
-   {
-      sum[i] = v1[i] + v2[i];
-   }
-   return sum;
-}
+Vector operator+(const Vector &v1, const Vector &v2);
 
 //=========================================================
 // Vector-Vector dif
 //=========================================================
-Vector operator-(const Vector &v1, const Vector &v2)
-{
-   assert(v1.size() == v2.size());
-   int n = v1.size();
-
-   Vector dif;
-   Resize(n,dif);
-
-   for(int i = 0; i < n; i++)
-   {
-      dif[i] = v1[i] - v2[i];
-   }
-   return dif;
-}
+Vector operator-(const Vector &v1, const Vector &v2);
 
 //=========================================================
 // Squared norm
 //=========================================================
-double Norm(const Vector &v)
-{
-   double norm = 0.0;
-   for (double d: v)
-      norm += d*d;
-   return norm;
-}
+double Norm(const Vector &v);
 
 //=========================================================
 // Vector print routine
 //=========================================================
-void PrintVector(std::ostream &out, Vector &vec)
-{
-   out<<"[";
-   for(double d: vec)
-      out<<d<<" ";
-   out<<"]\n";
-}
+void PrintVector(std::ostream &out, Vector &vec);
 
 //=========================================================
 // Vector Json conversion routines
 //=========================================================
-void json2vector(Json::Value& jv, Vector &v)
-{
-   int dim = jv.size();
-   v.resize(dim);
-   for (int i = 0; i < dim; ++i)
-      v[i] = jv[i].asDouble();
-}
-
-void json2vector(Json::Value& jv, const char *key, Vector &v)
-{
-   int dim = v.size();
-   if (!jv.isMember(key)) return;
-   json2vector(jv["x"], v);
-   assert(dim == v.size());
-}
+void json2vector(Json::Value& jv, Vector &v);
+void json2vector(Json::Value& jv, const char *key, Vector &v);
 
 #endif

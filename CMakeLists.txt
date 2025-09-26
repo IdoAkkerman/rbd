@@ -46,21 +46,27 @@ list(APPEND LIBRARIES "jsoncpp_lib")
 #-------------------------------------------------------------------------------
 # Build executable
 #-------------------------------------------------------------------------------
-add_executable(rbd rbd.cpp vector.hpp matrix.hpp state.hpp rigid-body.hpp)
+add_subdirectory(src)
+list(TRANSFORM SOURCES PREPEND src/)
+list(TRANSFORM HEADERS PREPEND src/)
+
+add_executable(rbd src/rbd.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(rbd PRIVATE  ${LIBRARIES})
 install(TARGETS rbd DESTINATION bin)
 
 #-------------------------------------------------------------------------------
 # Add test
 #-------------------------------------------------------------------------------
-configure_file(${CMAKE_SOURCE_DIR}/rb.json ${CMAKE_BINARY_DIR}/rb.json COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/rb_matrix.json ${CMAKE_BINARY_DIR}/rb_matrix.json COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/rb_angles.json ${CMAKE_BINARY_DIR}/rb_angles.json COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/rb_radians.json ${CMAKE_BINARY_DIR}/rb_radians.json COPYONLY)
+add_custom_target(examples ALL)
+add_custom_command(TARGET examples
+                   POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/examples
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/* ${CMAKE_BINARY_DIR}/examples)
+
 enable_testing()
-add_test(NAME rbd         COMMAND rbd rb.json)
-add_test(NAME rbd_matrix  COMMAND rbd rb_matrix.json)
-add_test(NAME rbd_angles  COMMAND rbd rb_angles.json)
-add_test(NAME rbd_radians COMMAND rbd rb_radians.json)
+add_test(NAME rbd         COMMAND rbd examples/rb.json)
+add_test(NAME rbd_matrix  COMMAND rbd examples/rb_matrix.json)
+add_test(NAME rbd_angles  COMMAND rbd examples/rb_angles.json)
+add_test(NAME rbd_radians COMMAND rbd examples/rb_radians.json)
 
 

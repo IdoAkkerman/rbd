@@ -42,123 +42,28 @@ private:
 
    State state_old, state_new;
 
-   void Construct(Json::Value &data)
-   {
-      // Read object data
-      dim = data["dimension"].asInt();
-      m = data["mass"].asDouble();
-      json2matrix(data["I0"],I0);
-      PrintMatrix(std::cout, I0);
-      assert(I0.size() == dim);
-      assert(isSPD(I0));
-
-      // Read integration data
-      dt_max = data.get("dt", 9999999.0).asDouble();
-
-      // Initialize states
-      state_new.Initialize(dim);
-      state_old.Initialize(dim);
-
-      if (data.isMember("initial_condition"))
-      {
-         state_old.Read(data["initial_condition"]);
-      }
-      state_old.SetInertiaTensor(I0);
-   }
+   void Construct(Json::Value &data);
 
 public:
 
-   RigidBody(std::string fileName, std::string rbName)
-   {
-      Json::Value data;
-      std::ifstream file(fileName.c_str(), std::ifstream::binary);
-      if (!file)
-      {
-        std::cout<<"File "<<fileName<<" could not be opened!\n";
-        abort();
-      }
-      file >> data;
-      Construct(data[rbName]);
-   }
+   RigidBody(std::string fileName, std::string rbName);
+   RigidBody(std::string fileName);
+   RigidBody(Json::Value &data);
 
-   RigidBody(std::string fileName)
-   {
-      std::ifstream file(fileName.c_str(), std::ifstream::binary);
-      if (!file)
-      {
-        std::cout<<"File "<<fileName<<" could not be opened!\n";
-        abort();
-      }
-      Json::Value data;
-      file >> data;
-      Construct(data);
-   }
+   int GetDim() {return dim;};
 
-   RigidBody(Json::Value &data)
-   {
-      Construct(data);
-   }
+   double beginTimeStep() {return dt_max;};
 
-   int GetDim(){return dim;};
+   void computeMotion(double dt, Vector &forces);
 
-   double beginTimeStep(){return dt_max;};
+   void reloadOldState() {}; // Not needed
+   void saveOldState() {};  // Not needed
+   void endTimeStep() { state_old = state_new; };
 
-   void computeMotion(double dt, Vector &forces)
-   {
-      Vector F(dim);
-      Vector M(dim);
-      int i = 0;
-      for(double &d: F)
-         d = forces[i++];
-      for(double &d: M)
-         d = forces[i++];
+   State& GetNewState() { return state_new; };
+   State& GetOldState() { return state_old; };
 
-      state_new.v =  state_old.v + (dt/m)*F;
-      state_new.x =  state_old.x + (dt/2)*(state_new.v+state_old.v);
-
-      Matrix eye;
-      Resize(dim, eye);
-      for(int i = 0; Vector & vec: eye)
-         vec[i++] = 1.0;
-
-      int it; 
-      for(it = 0; it < 100; it++)
-      {
-         state_new.SetInertiaTensor(I0);
-         Matrix I_inv = Inverse(state_new.I);
-         state_new.w =  I_inv*(state_old.I*state_old.w + dt*I_inv*M);
-
-         Matrix Q = Skew(0.5*(state_new.w+state_old.w));
-         Matrix Qp = eye + (dt/2)*Q;
-         Matrix Qm_inv = Inverse(eye + (-dt/2)*Q);
-         Matrix Rn= Qm_inv*Qp*state_old.R;
-         double norm = Norm(state_new.R - Rn);
-         state_new.R =  Rn;
-
-         if(norm < 1e-8) break;
-      }
-
-      std::cout<<"iterations = "<<it<<std::endl;
-   };
-
-   void reloadOldState(){}; // Not needed
-   void saveOldState(){};   // Not needed
-   void endTimeStep(){ state_old = state_new; };
-
-   State& GetNewState(){ return state_new; };
-   State& GetOldState(){ return state_old; };
-
-   void Print(std::ostream &out)
-   {
-      // Object data
-      out<<"Dimension = "<<dim<<std::endl;
-      out<<"Mass = "<<m<<std::endl;
-      out<<"I0 = ";PrintMatrix(out, I0);
-
-      // State data
-      state_old.Print(out);
-      state_new.Print(out);
-   }
+   void Print(std::ostream &out);
 };
 
 #endif
