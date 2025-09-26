@@ -124,12 +124,14 @@ double Norm(const Vector &v)
 //=========================================================
 // Vector print routine
 //=========================================================
-void PrintVector(std::ostream &out, const Vector &vec)
+void PrintVector(std::ostream &out, const Vector &vec, const std::string &key)
 {
+   if (key != "") out<<key<<" = ";
    out<<"[";
-   for (double d: vec)
+   for (int i = 0; double d: vec)
    {
-      out<<d<<" ";
+      if (i++ != 0) out<<", ";
+      out<<d;
    }
    out<<"]\n";
 }
@@ -151,6 +153,6 @@ void json2vector(Json::Value& jv, const char *key, Vector &v)
 {
    int dim = v.size();
    if (!jv.isMember(key)) { return; }
-   json2vector(jv["x"], v);
+   json2vector(jv[key], v);
    assert(dim == v.size());
 }

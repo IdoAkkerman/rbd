@@ -33,12 +33,13 @@
 class RigidBody
 {
 private:
-   int dim;     // Dimension of the problem (2D/3D)
+   int dim = -1; // Dimension of the problem (2D/3D)
 
-   double m;    // Mass
+   double m;     // Mass
    Matrix I0;    // Mass moment of inertia tensor
 
    double dt_max;
+   int iter = -1;
 
    State state_old, state_new;
 
@@ -52,20 +53,21 @@ public:
    RigidBody(Json::Value &data);
 
    // Info
-   int GetDim() {return dim;};
-   void Print(std::ostream &out);
+   int GetDimension() {return dim;};
+   int GetIterationCount() {return iter;};
+   void Print(std::ostream &out = std::cout);
    State& GetNewState() { return state_new; };
    State& GetOldState() { return state_old; };
 
    // Time stepping routines
-   double beginTimeStep() {return dt_max;};
-   void computeMotion(double dt, Vector &forces,
+   double GetTimeStep() {return dt_max;};
+   void ComputeMotion(double dt, Vector &forces,
                       int iter_max = 100,
                       double tol = 1e-8);
 
-   void reloadOldState() {}; // Not needed
-   void saveOldState() {};  // Not needed
-   void endTimeStep() { state_old = state_new; };
+   void ReloadOldState() {}; // Not needed
+   void SaveOldState() {};  // Not needed
+   void EndTimeStep() { state_old = state_new; };
 };
 
 #endif

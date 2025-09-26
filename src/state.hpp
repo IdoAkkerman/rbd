@@ -38,13 +38,16 @@ public:
    Matrix I;    // Inertia tensor --> in current configuration
 
    State() {};
-   State(State &org);
+   State(int dim);
+   State(const State &org);
 
    void Initialize(int dim_);
    void SetInertiaTensor(Matrix &I0);
-   void CheckRotation(double tol = 1e-12);
+   void CheckRotation(double tol = 1e-12) const;
+   bool Equal(const State &org, double tol = 1e-12) const;
+   void Read(std::string fileName, std::string rbName);
    void Read(Json::Value &data);
-   void Print(std::ostream &out);
+   void Print(std::ostream &out = std::cout) const;
 };
 
 #endif

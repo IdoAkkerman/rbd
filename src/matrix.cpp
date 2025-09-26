@@ -147,7 +147,7 @@ bool isSPD(const Matrix&A, double tol)
 //=========================================================
 // Matrix transpose
 //=========================================================
-Matrix Transpose(Matrix&A)
+Matrix Transpose(const Matrix&A)
 {
    int i,j;
    int n = A.size();
@@ -384,11 +384,22 @@ Matrix Skew(const Vector &v)
 //=========================================================
 // Matrix print routine
 //=========================================================
-void PrintMatrix(std::ostream &out, const Matrix &mat)
+void PrintMatrix(std::ostream &out, const Matrix &mat, const std::string &key)
 {
-   out<<"\n";
-   for (const Vector &vec: mat)
+   std::string s(0, ' ');
+   if (key == "")
    {
+      out<<"\n";
+   }
+   else
+   {
+      out<<key<<" = ";
+      s.append(3+key.length(), ' ');
+   }
+
+   for (int i = 0;const Vector &vec: mat)
+   {
+      if (i++ != 0) out<<s;
       PrintVector(out, vec);
    }
 }

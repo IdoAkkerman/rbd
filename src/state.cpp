@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <cmath>
+#include <fstream>
 
 #include "state.hpp"
 
@@ -74,7 +75,12 @@ Matrix GetRotation(Vector rad)
 //=========================================================
 // Define the rigid body class
 //=========================================================
-State::State(State &org)
+State::State(int dim_)
+{
+   Initialize(dim_);
+}
+
+State::State(const State &org)
 {
    dim = org.dim;
    x = org.x;
@@ -116,7 +122,7 @@ void State::SetInertiaTensor(Matrix &I0)
    }
 }
 
-void State::CheckRotation(double tol)
+void State::CheckRotation(double tol) const
 {
    // Check rotation matrix
    Matrix id = R*Transpose(R);
@@ -136,18 +142,49 @@ void State::CheckRotation(double tol)
    assert(norm < tol);
 }
 
+bool State::Equal(const State &org, double tol) const
+{
+   assert(dim == org.dim);
+   Vector dx = x - org.x;
+   Vector dv = v - org.v;
+   Matrix dR = R - org.R;
+   Vector dw = w - org.w;
+
+   return (Norm(dx) < tol) &&
+          (Norm(dv) < tol) &&
+          (Norm(dR) < tol) &&
+          (Norm(dw) < tol);
+}
+
+void State::Read(std::string fileName, std::string stateName)
+{
+   std::ifstream file(fileName.c_str(), std::ifstream::binary);
+   if (!file)
+   {
+      std::cout<<"File "<<fileName<<" could not be opened!\n";
+      abort();
+   }
+   Json::Value data;
+   file >> data;
+   Read(data[stateName]);
+}
+
 void State::Read(Json::Value &data)
 {
    // Read state data -- zero if not defined
    // Displacement
    json2vector(data, "x", x);
+   PrintVector(std::cout, x, "x");
 
    // Velocity
    json2vector(data, "v", v);
+   PrintVector(std::cout, v, "v");
 
    // Angular Velocity
+   PrintVector(std::cout, w, "w");
    json2vector(data, "w", w);
 
+   PrintVector(std::cout, w, "w");
    // Rotation
    if (data.isMember("angles_deg"))
    {
@@ -183,13 +220,13 @@ void State::Read(Json::Value &data)
    }
 };
 
-void State::Print(std::ostream &out)
+void State::Print(std::ostream &out) const
 {
-   out<<"x = "; PrintVector(out, x);
-   out<<"v = "; PrintVector(out, v);
+   PrintVector(out, x, "x");
+   PrintVector(out, v, "v");
 
-   out<<"R = "; PrintMatrix(out, R);
-   out<<"w = "; PrintVector(out, w);
+   PrintMatrix(out, R, "R");
+   PrintVector(out, w, "w");
 }
 
 

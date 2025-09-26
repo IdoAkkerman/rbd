@@ -64,7 +64,7 @@ add_custom_command(TARGET examples
                    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/* ${CMAKE_BINARY_DIR}/examples)
 
 enable_testing()
-add_test(NAME rbd         COMMAND rbd examples/rb.json)
+add_test(NAME rbd         COMMAND rbd examples/rb_2d.json)
 add_test(NAME rbd_matrix  COMMAND rbd examples/rb_matrix.json)
 add_test(NAME rbd_angles  COMMAND rbd examples/rb_angles.json)
 add_test(NAME rbd_radians COMMAND rbd examples/rb_radians.json)

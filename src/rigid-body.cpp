@@ -51,18 +51,19 @@ void RigidBody::Construct(Json::Value &data)
       state_old.Read(data["initial_condition"]);
    }
    state_old.SetInertiaTensor(I0);
+
 }
 
 // Constructor
 RigidBody::RigidBody(std::string fileName, std::string rbName)
 {
-   Json::Value data;
    std::ifstream file(fileName.c_str(), std::ifstream::binary);
    if (!file)
    {
       std::cout<<"File "<<fileName<<" could not be opened!\n";
       abort();
    }
+   Json::Value data;
    file >> data;
    Construct(data[rbName]);
 }
@@ -101,7 +102,7 @@ void RigidBody::Print(std::ostream &out)
 }
 
 // Time integration routine
-void RigidBody::computeMotion(double dt, Vector &forces,
+void RigidBody::ComputeMotion(double dt, Vector &forces,
                               int iter_max, double tol)
 {
    Vector F(dim);
@@ -126,8 +127,7 @@ void RigidBody::computeMotion(double dt, Vector &forces,
       vec[i++] = 1.0;
    }
 
-   int it;
-   for (it = 0; it < iter_max; it++)
+   for (iter = 0; iter < iter_max; iter++)
    {
       state_new.SetInertiaTensor(I0);
       Matrix I_inv = Inverse(state_new.I);
@@ -143,5 +143,5 @@ void RigidBody::computeMotion(double dt, Vector &forces,
 
       if (norm < tol) { break; }
    }
-   std::cout<<"iterations = "<<it<<std::endl;
+
 }

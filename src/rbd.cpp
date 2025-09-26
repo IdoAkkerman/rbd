@@ -33,27 +33,33 @@ using namespace precice;
 //=========================================================
 // The test program
 //=========================================================
-void test(char* rbName)
+void test(char* fileName)
 {
-   RigidBody rb(rbName);
+   RigidBody rb(fileName, "rigid_body");
 
-   double dt = 0.1;
+   double dt = rb.GetTimeStep();
    double t = 0;
    Vector forces;
-   Resize(2*rb.GetDim(), forces);
+   Resize(2*rb.GetDimension(), forces);
    forces[1] = 1.0;
    forces[2] = 2.0;
    forces[3] = 1.0;
    for (int i = 0; i <100; i++)
    {
-      std::cout<<"t = "<<t<<std::endl;
-      rb.computeMotion(dt, forces);
+      std::cout<<"========================"<<std::endl;
+      std::cout<<i<<": t = "<<t<<std::endl;
+      std::cout<<"========================"<<std::endl;
+      rb.ComputeMotion(dt, forces);
       rb.GetNewState().CheckRotation(1e-8);
+
       rb.GetNewState().Print(std::cout);
-      rb.endTimeStep();
+      rb.EndTimeStep();
       t += dt;
    }
-   rb.Print(std::cout);
+
+   State ref(rb.GetDimension());
+   ref.Read(fileName, "ref_condition");
+   assert(rb.GetNewState().Equal(ref, 1e-6));
 }
 
 Vector computeDisplacements() {Vector disp; return disp;};
@@ -64,13 +70,6 @@ Vector computeVelocities() {Vector vel; return vel;};
 //=========================================================
 int main(int argc, char **argv)
 {
-   // Test -- using default rigid body
-   if (argc == 1)
-   {
-      test(const_cast<char*>("rb.json"));
-      return 0;
-   }
-
    // Test -- using specified rigid body
    if (argc == 2)
    {
@@ -133,15 +132,15 @@ int main(int argc, char **argv)
    {
       if (participant.requiresWritingCheckpoint())
       {
-         rb.saveOldState();
+         rb.SaveOldState();
       }
       double preciceDt = participant.getMaxTimeStepSize();
-      double solverDt = rb.beginTimeStep();
+      double solverDt = rb.GetTimeStep();
       double dt = std::min(preciceDt, solverDt);
 
       participant.readData(meshName, "Displacements", vertexIDs, dt, forces);
 
-      rb.computeMotion(dt, forces);
+      rb.ComputeMotion(dt, forces);
 
       if (displDim != -1)
       {
@@ -157,11 +156,11 @@ int main(int argc, char **argv)
 
       if (participant.requiresReadingCheckpoint())
       {
-         rb.reloadOldState();
+         rb.ReloadOldState();
       }
       else
       {
-         rb.endTimeStep();
+         rb.EndTimeStep();
       }
    }
    participant.finalize();

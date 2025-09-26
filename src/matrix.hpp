@@ -50,12 +50,12 @@ bool isSPD(const Matrix&A, double tol = 1e-12);
 //=========================================================
 // Matrix transpose
 //=========================================================
-Matrix Transpose(Matrix&A);
+Matrix Transpose(const Matrix&A);
 
 //=========================================================
 // Matrix-Scalar product
 //=========================================================
-Matrix operator*(const double &c,const Matrix &A);
+Matrix operator*(const double &c, const Matrix &A);
 Matrix operator*(const Matrix &A, const double &c);
 
 //=========================================================
@@ -96,7 +96,7 @@ Matrix Skew(const Vector &v);
 //=========================================================
 // Matrix print routine
 //=========================================================
-void PrintMatrix(std::ostream &out, const Matrix &mat);
+void PrintMatrix(std::ostream &out, const Matrix &mat, const std::string &key = "");
 
 //=========================================================
 // Matrix Json conversion routines
