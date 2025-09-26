@@ -61,7 +61,7 @@ double Norm(const Vector &v);
 //=========================================================
 // Vector print routine
 //=========================================================
-void PrintVector(std::ostream &out, Vector &vec);
+void PrintVector(std::ostream &out, const Vector &vec);
 
 //=========================================================
 // Vector Json conversion routines

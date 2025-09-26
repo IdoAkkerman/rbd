@@ -67,13 +67,18 @@ bool isDiagionallyDominant(const Matrix&A)
    return pd;
 }
 
-double det(const Matrix &A)
+double determinant(const Matrix &A)
 {
-   assert((A.size() == 2) || (A.size() == 3));
+   assert( A.size() <= 3 );
    double det;
-   if (A.size() == 2)
+
+   if (A.size() == 1)
    {
-      det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+      det = A[0][0];
+   }
+   else if (A.size() == 2)
+   {
+     det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
    }
    else if (A.size() == 3)
    {
@@ -90,7 +95,7 @@ double det(const Matrix &A)
 
 bool isInvertible(const Matrix&A, double tol)
 {
-   return (fabs(det(A)) > tol);
+   return (fabs(determinant(A)) > tol);
 }
 
 double trace(const Matrix &A)
@@ -107,11 +112,15 @@ double trace(const Matrix &A)
 
 bool isPositiveDefinite(const Matrix&A, double tol)
 {
-   assert((A.size() == 2) || (A.size() == 3));
+   assert( A.size() <= 3 );
 
-   if (A.size() == 2)
+   if (A.size() == 1)
    {
-      return (trace(A) > tol) && (det(A) > tol);
+      return A[0][0] > tol;
+   }
+   else if (A.size() == 2)
+   {
+      return (trace(A) > tol) && (determinant(A) > tol);
    }
    else if (A.size() == 3)
    {
@@ -121,7 +130,7 @@ bool isPositiveDefinite(const Matrix&A, double tol)
                   - A[0][1] * A[1][0]
                   - A[1][2] * A[2][1]
                   - A[0][2] * A[2][0];
-      return (I2 > tol) && (trace(A) > tol) &&(det(A) > tol);
+      return (I2 > tol) && (trace(A) > tol) &&(determinant(A) > tol);
    }
    else
    {
@@ -295,26 +304,45 @@ double Norm(const Matrix &A)
 //=========================================================
 // Compute Inverse of Matrix
 //=========================================================
-Matrix Inverse(const Matrix &m)
+Matrix Inverse(const Matrix &m, double tol)
 {
-   assert(m.size() == 3);
-   double det = m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2]) -
-                m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
-                m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+   assert( m.size() <= 3 );
+   double det = determinant(m);
 
-   double invdet = 1 / det;
+   assert(fabs(det) > tol);
+   double invdet = 1.0 / det;
 
    Matrix inv;
-   Resize(3,  inv);
-   inv[0][0] = (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invdet;
-   inv[0][1] = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invdet;
-   inv[0][2] = (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invdet;
-   inv[1][0] = (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * invdet;
-   inv[1][1] = (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invdet;
-   inv[1][2] = (m[1][0] * m[0][2] - m[0][0] * m[1][2]) * invdet;
-   inv[2][0] = (m[1][0] * m[2][1] - m[2][0] * m[1][1]) * invdet;
-   inv[2][1] = (m[2][0] * m[0][1] - m[0][0] * m[2][1]) * invdet;
-   inv[2][2] = (m[0][0] * m[1][1] - m[1][0] * m[0][1]) * invdet;
+   if (m.size() == 1)
+   {
+      Resize(1, inv);
+      inv[0][0] = invdet;
+   }
+   else if (m.size() == 2)
+   {
+      Resize(2, inv);
+      inv[0][0] = m[1][1] * invdet;
+      inv[0][1] = -m[0][1] * invdet;
+      inv[1][0] = -m[1][0] * invdet;
+      inv[1][1] = m[0][0] * invdet;
+   }
+   else if (m.size() == 3)
+   {
+      Resize(3, inv);
+      inv[0][0] = (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invdet;
+      inv[0][1] = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invdet;
+      inv[0][2] = (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invdet;
+      inv[1][0] = (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * invdet;
+      inv[1][1] = (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invdet;
+      inv[1][2] = (m[1][0] * m[0][2] - m[0][0] * m[1][2]) * invdet;
+      inv[2][0] = (m[1][0] * m[2][1] - m[2][0] * m[1][1]) * invdet;
+      inv[2][1] = (m[2][0] * m[0][1] - m[0][0] * m[2][1]) * invdet;
+      inv[2][2] = (m[0][0] * m[1][1] - m[1][0] * m[0][1]) * invdet;
+   }
+   else
+   {
+      abort();
+   }
 
    return inv;
 }
@@ -324,27 +352,42 @@ Matrix Inverse(const Matrix &m)
 //=========================================================
 Matrix Skew(const Vector &v)
 {
-   int n =v.size();
+   assert((v.size() == 1) || (v.size() == 3));
    Matrix sk;
-   Resize(n, sk);
-   assert(n == 3);  // assumes 3D
-   sk[0][1] = -v[2];
-   sk[0][2] = v[1];
-   sk[1][2] = -v[0];
+   
+   if (v.size() == 1)
+   {
+      Resize(2, sk);
+      sk[0][1] = v[0];
+      sk[1][0] = -v[0];
+   }
+   else if (v.size() == 3)
+   {
+      Resize(3, sk);
+      sk[0][1] = -v[2];
+      sk[0][2] = v[1];
+      sk[1][2] = -v[0];
 
-   sk[1][0] = v[2];
-   sk[2][0] = -v[1];
-   sk[2][1] = v[0];
+      sk[1][0] = v[2];
+      sk[2][0] = -v[1];
+      sk[2][1] = v[0];
+   }
+   else
+   {
+      std::cout<<"v.size() = "<<v.size()<<std::endl;
+      abort();
+   }
+
    return sk;
 }
 
 //=========================================================
 // Matrix print routine
 //=========================================================
-void PrintMatrix(std::ostream &out, Matrix &mat)
+void PrintMatrix(std::ostream &out, const Matrix &mat)
 {
    out<<"\n";
-   for (Vector &vec: mat)
+   for (const Vector &vec: mat)
    {
       PrintVector(out, vec);
    }

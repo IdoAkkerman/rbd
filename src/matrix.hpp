@@ -86,7 +86,7 @@ double Norm(const Matrix &A);
 //=========================================================
 // Compute Inverse of Matrix
 //=========================================================
-Matrix Inverse(const Matrix &m);
+Matrix Inverse(const Matrix &m, double tol = 1e-12);
 
 //=========================================================
 // Generate the skew Matrix from a vector
@@ -96,7 +96,7 @@ Matrix Skew(const Vector &v);
 //=========================================================
 // Matrix print routine
 //=========================================================
-void PrintMatrix(std::ostream &out, Matrix &mat);
+void PrintMatrix(std::ostream &out, const Matrix &mat);
 
 //=========================================================
 // Matrix Json conversion routines

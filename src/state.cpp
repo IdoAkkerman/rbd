@@ -89,7 +89,7 @@ void State::Initialize(int dim_)
    dim = dim_;
    Resize(dim, x);
    Resize(dim, v);
-   Resize(dim, w);
+   Resize((dim*(dim-1))/2, w);
    Resize(dim, R);
    for (int i = 0; Vector &vec: R)
    {
@@ -100,11 +100,23 @@ void State::Initialize(int dim_)
 
 void State::SetInertiaTensor(Matrix &I0)
 {
-   assert(I0.size() == dim);
-   I = R*I0*Transpose(R);
+   assert(I0.size() == (dim*(dim-1))/2);
+
+   if (dim == 2)
+   {
+      I = I0;
+   }
+   else if (dim == 3)
+   {
+      I = R*I0*Transpose(R);
+   }
+   else
+   {
+      abort();
+   }
 }
 
-void State::CheckRotation()
+void State::CheckRotation(double tol)
 {
    // Check rotation matrix
    Matrix id = R*Transpose(R);
@@ -114,14 +126,14 @@ void State::CheckRotation()
       vec[i++] -= 1.0;
    }
    double norm = Norm(id);
-   if (norm > 1e-12)
+   if (norm > tol)
    {
       std::cout<<" Norm = " << norm<<std::endl;
       std::cout<<" R = "; PrintMatrix(std::cout, R);
       Matrix id = R*Transpose(R);
       std::cout<<" R*R^t = "; PrintMatrix(std::cout, id);
    }
-   assert(norm < 1e-12);
+   assert(norm < tol);
 }
 
 void State::Read(Json::Value &data)

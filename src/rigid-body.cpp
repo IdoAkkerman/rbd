@@ -36,7 +36,7 @@ void RigidBody::Construct(Json::Value &data)
    m = data["mass"].asDouble();
    json2matrix(data["I0"],I0);
    PrintMatrix(std::cout, I0);
-   assert(I0.size() == dim);
+   assert(I0.size() == (dim*(dim-1))/2);
    assert(isSPD(I0));
 
    // Read integration data
@@ -135,13 +135,13 @@ void RigidBody::computeMotion(double dt, Vector &forces,
 
       Matrix Q = Skew(0.5*(state_new.w+state_old.w));
       Matrix Qp = eye + (dt/2)*Q;
-      Matrix Qm_inv = Inverse(eye + (-dt/2)*Q);
+      Matrix Qm_inv = Inverse(eye - (dt/2)*Q);
+
       Matrix Rn= Qm_inv*Qp*state_old.R;
       double norm = Norm(state_new.R - Rn);
       state_new.R =  Rn;
 
       if (norm < tol) { break; }
    }
-
    std::cout<<"iterations = "<<it<<std::endl;
 }

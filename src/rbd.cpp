@@ -43,15 +43,15 @@ void test(char* rbName)
    Resize(2*rb.GetDim(), forces);
    forces[1] = 1.0;
    forces[2] = 2.0;
-   forces[4] = 1.0;
+   forces[3] = 1.0;
    for (int i = 0; i <100; i++)
    {
       std::cout<<"t = "<<t<<std::endl;
       rb.computeMotion(dt, forces);
-      rb.GetNewState().CheckRotation();
+      rb.GetNewState().CheckRotation(1e-8);
+      rb.GetNewState().Print(std::cout);
       rb.endTimeStep();
       t += dt;
-
    }
    rb.Print(std::cout);
 }

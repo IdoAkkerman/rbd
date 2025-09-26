@@ -42,7 +42,7 @@ public:
 
    void Initialize(int dim_);
    void SetInertiaTensor(Matrix &I0);
-   void CheckRotation();
+   void CheckRotation(double tol = 1e-12);
    void Read(Json::Value &data);
    void Print(std::ostream &out);
 };
