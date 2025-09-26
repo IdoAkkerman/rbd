@@ -38,14 +38,14 @@ void Resize(int dim, Matrix&A)
 //=========================================================
 // Check Matrix properties
 //=========================================================
-bool isSymmetric(const Matrix&A)
+bool isSymmetric(const Matrix&A, double tol)
 {
    int n = A.size();
    bool sym = true;
    for (int i = 0; i < n; i++)
    {
       for (int j = 0; j < n; j++)
-         if (fabs(A[j][i] - A[i][j]) > 1e-12) { sym = false; }
+         if (fabs(A[j][i] - A[i][j]) > tol) { sym = false; }
    }
    return sym;
 }
@@ -88,9 +88,9 @@ double det(const Matrix &A)
    return det;
 }
 
-bool isInvertible(const Matrix&A)
+bool isInvertible(const Matrix&A, double tol)
 {
-   return (fabs(det(A)) > 1e-12);
+   return (fabs(det(A)) > tol);
 }
 
 double trace(const Matrix &A)
@@ -105,13 +105,13 @@ double trace(const Matrix &A)
    return tr;
 }
 
-bool isPositiveDefinite(const Matrix&A)
+bool isPositiveDefinite(const Matrix&A, double tol)
 {
    assert((A.size() == 2) || (A.size() == 3));
 
    if (A.size() == 2)
    {
-      return (trace(A) > 1e-12) && (det(A) > 1e-12);
+      return (trace(A) > tol) && (det(A) > tol);
    }
    else if (A.size() == 3)
    {
@@ -121,7 +121,7 @@ bool isPositiveDefinite(const Matrix&A)
                   - A[0][1] * A[1][0]
                   - A[1][2] * A[2][1]
                   - A[0][2] * A[2][0];
-      return (I2 > 1e-12) && (trace(A) > 1e-12) &&(det(A) > 1e-12);
+      return (I2 > tol) && (trace(A) > tol) &&(det(A) > tol);
    }
    else
    {
@@ -130,9 +130,9 @@ bool isPositiveDefinite(const Matrix&A)
    return false;
 }
 
-bool isSPD(const Matrix&A)
+bool isSPD(const Matrix&A, double tol)
 {
-   return isSymmetric(A) && isPositiveDefinite(A);
+   return isSymmetric(A) && isPositiveDefinite(A, tol);
 }
 
 //=========================================================

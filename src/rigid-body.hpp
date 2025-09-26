@@ -42,28 +42,30 @@ private:
 
    State state_old, state_new;
 
+   // Defacto contructor
    void Construct(Json::Value &data);
 
 public:
-
+   // Contructors
    RigidBody(std::string fileName, std::string rbName);
    RigidBody(std::string fileName);
    RigidBody(Json::Value &data);
 
+   // Info
    int GetDim() {return dim;};
+   void Print(std::ostream &out);
+   State& GetNewState() { return state_new; };
+   State& GetOldState() { return state_old; };
 
+   // Time stepping routines
    double beginTimeStep() {return dt_max;};
-
-   void computeMotion(double dt, Vector &forces);
+   void computeMotion(double dt, Vector &forces,
+                      int iter_max = 100,
+                      double tol = 1e-8);
 
    void reloadOldState() {}; // Not needed
    void saveOldState() {};  // Not needed
    void endTimeStep() { state_old = state_new; };
-
-   State& GetNewState() { return state_new; };
-   State& GetOldState() { return state_old; };
-
-   void Print(std::ostream &out);
 };
 
 #endif

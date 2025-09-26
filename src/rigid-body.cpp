@@ -21,13 +21,14 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
-#include <json/json.h>
+//#include <json/json.h>
 
 #include "vector.hpp"
 #include "matrix.hpp"
 #include "state.hpp"
 #include "rigid-body.hpp"
 
+// Defacto Constructor
 void RigidBody::Construct(Json::Value &data)
 {
    // Read object data
@@ -52,6 +53,7 @@ void RigidBody::Construct(Json::Value &data)
    state_old.SetInertiaTensor(I0);
 }
 
+// Constructor
 RigidBody::RigidBody(std::string fileName, std::string rbName)
 {
    Json::Value data;
@@ -65,6 +67,7 @@ RigidBody::RigidBody(std::string fileName, std::string rbName)
    Construct(data[rbName]);
 }
 
+// Constructor
 RigidBody::RigidBody(std::string fileName)
 {
    std::ifstream file(fileName.c_str(), std::ifstream::binary);
@@ -78,7 +81,28 @@ RigidBody::RigidBody(std::string fileName)
    Construct(data);
 }
 
-void RigidBody::computeMotion(double dt, Vector &forces)
+// Constructor
+RigidBody::RigidBody(Json::Value &data)
+{
+   Construct(data);
+}
+
+// Print
+void RigidBody::Print(std::ostream &out)
+{
+   // Object data
+   out<<"Dimension = "<<dim<<std::endl;
+   out<<"Mass = "<<m<<std::endl;
+   out<<"I0 = "; PrintMatrix(out, I0);
+
+   // State data
+   state_old.Print(out);
+   state_new.Print(out);
+}
+
+// Time integration routine
+void RigidBody::computeMotion(double dt, Vector &forces,
+                              int iter_max, double tol)
 {
    Vector F(dim);
    Vector M(dim);
@@ -103,7 +127,7 @@ void RigidBody::computeMotion(double dt, Vector &forces)
    }
 
    int it;
-   for (it = 0; it < 100; it++)
+   for (it = 0; it < iter_max; it++)
    {
       state_new.SetInertiaTensor(I0);
       Matrix I_inv = Inverse(state_new.I);
@@ -116,22 +140,8 @@ void RigidBody::computeMotion(double dt, Vector &forces)
       double norm = Norm(state_new.R - Rn);
       state_new.R =  Rn;
 
-      if (norm < 1e-8) { break; }
+      if (norm < tol) { break; }
    }
 
    std::cout<<"iterations = "<<it<<std::endl;
 }
-
-void RigidBody::Print(std::ostream &out)
-{
-   // Object data
-   out<<"Dimension = "<<dim<<std::endl;
-   out<<"Mass = "<<m<<std::endl;
-   out<<"I0 = "; PrintMatrix(out, I0);
-
-   // State data
-   state_old.Print(out);
-   state_new.Print(out);
-}
-
-

@@ -38,13 +38,14 @@ void Resize(int dim, Matrix&A);
 //=========================================================
 // Check Matrix properties
 //=========================================================
-bool isSymmetric(const Matrix&A);
-bool isDiagionallyDominant(const Matrix&A);
 double det(const Matrix &A);
-bool isInvertible(const Matrix&A);
 double trace(const Matrix &A);
-bool isPositiveDefinite(const Matrix&A);
-bool isSPD(const Matrix&A);
+
+bool isSymmetric(const Matrix&A, double tol = 1e-12);
+bool isDiagionallyDominant(const Matrix&A);
+bool isInvertible(const Matrix&A, double tol = 1e-12);
+bool isPositiveDefinite(const Matrix&A, double tol = 1e-12);
+bool isSPD(const Matrix&A, double tol = 1e-12);
 
 //=========================================================
 // Matrix transpose
