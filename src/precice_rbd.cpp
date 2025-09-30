@@ -30,61 +30,6 @@
 
 using namespace precice;
 
-//=========================================================
-// The test program
-//=========================================================
-void test(char* fileName)
-{
-   RigidBody rb(fileName, "rigid_body");
-   rb.SetVerbose();
-
-   Vector forces;
-   Resize(rb.GetDimension(), forces);
-   for (int i = 0; i <forces.size(); i++) { forces[i] = i+1; }
-
-   Vector moments;
-   Resize(rb.GetRDimension(), moments);
-   for (int i = 0; i <moments.size(); i++) { moments[i] = i+1; }
-
-   std::fstream fs;
-   fs.open ("test.txt", std::fstream::out);
-   rb.GetOldState().PrintHeader(fs);
-   rb.GetOldState().Print(0.0,fs);
-   rb.GetOldState().PrettyPrint(std::cout);
-   for (int i = 0; i <1000; i++)
-   {
-      double dt = rb.GetTimeStep();
-      std::cout<<"==========================================="<<std::endl;
-      std::cout<<i+1<<" "<<dt<<": "<<rb.GetOldState().t
-               <<" --> "<<rb.GetOldState().t+dt<<std::endl;
-      std::cout<<"==========================================="<<std::endl;
-      rb.ComputeMotion(dt, forces, moments);
-      rb.GetNewState().CheckRotation(1e-12);
-
-      rb.EndTimeStep();
-
-      rb.GetNewState().PrettyPrint(std::cout);
-      rb.GetOldState().Print(dt,fs);
-   }
-
-   State ref(rb.GetDimension());
-   bool hasRef = ref.Read(fileName, "ref_condition");
-   if (hasRef)
-   {
-      // Compare
-      bool isEqual = rb.GetNewState().Equal(ref, 1e-12);
-      if (isEqual) { std::cout<<"Solution matches reference!! \n"; }
-      assert(isEqual);
-   }
-   else
-   {
-      std::cout<<"\"ref_condition\" : \n";
-      rb.GetNewState().PrintJson(std::cout);
-      std::cout<<std::flush;
-      abort();
-   }
-}
-
 Vector computeDisplacements() {Vector disp; return disp;};
 Vector computeVelocities() {Vector vel; return vel;};
 
@@ -93,13 +38,6 @@ Vector computeVelocities() {Vector vel; return vel;};
 //=========================================================
 int main(int argc, char **argv)
 {
-   // Test -- using specified rigid body
-   if (argc == 2)
-   {
-      test(argv[1]);
-      return 0;
-   }
-
    // Read input
    if (argc != 5)
    {

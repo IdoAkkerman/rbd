@@ -41,12 +41,14 @@ list(APPEND LIBRARIES "jsoncpp_lib")
 # Build executable
 #-------------------------------------------------------------------------------
 add_subdirectory(src)
-list(TRANSFORM SOURCES PREPEND src/)
-list(TRANSFORM HEADERS PREPEND src/)
 
-add_executable(rbd src/rbd.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(rbd PRIVATE  ${LIBRARIES})
-install(TARGETS rbd DESTINATION bin)
+add_executable(precice_rbd src/precice_rbd.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(precice_rbd PRIVATE rbd ${LIBRARIES})
+install(TARGETS precice_rbd DESTINATION bin)
+
+add_executable(test_rbd src/test_rbd.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(test_rbd PRIVATE rbd ${LIBRARIES})
+install(TARGETS test_rbd DESTINATION bin)
 
 #-------------------------------------------------------------------------------
 # Add examples
