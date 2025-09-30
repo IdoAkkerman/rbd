@@ -24,18 +24,23 @@
 #include "vector.hpp"
 #include "matrix.hpp"
 
+
+Matrix GetRotation(const Vector &rad);
+Vector GetRotation(const Matrix &R);
+
 //=========================================================
 // Define the rigid body class
 //=========================================================
 class State
 {
 public:
-   int dim;
-   Vector x,v;  // Displacement & Velocity;
-   Matrix R;    // Rotation matrix
-   Vector w;    // Angular velocity
-
-   Matrix I;    // Inertia tensor --> in current configuration
+   int dim, rdim;
+   double t = -1.0;
+   Vector x,v;     // Displacement & Velocity;
+   Matrix R;       // Rotation matrix
+   Vector theta;   // Rotation angels
+   Vector w;       // Angular velocity
+   Matrix I;       // Inertia tensor --> in current configuration
 
    State() {};
    State(int dim);
@@ -45,9 +50,12 @@ public:
    void SetInertiaTensor(Matrix &I0);
    void CheckRotation(double tol = 1e-12) const;
    bool Equal(const State &org, double tol = 1e-12) const;
-   void Read(std::string fileName, std::string rbName);
+   bool Read(std::string fileName, std::string rbName);
    void Read(Json::Value &data);
-   void Print(std::ostream &out = std::cout) const;
+   void PrettyPrint(std::ostream &out = std::cout) const;
+   void PrintJson(std::ostream &out = std::cout) const;
+   void PrintHeader(std::ostream &out) const;
+   void Print(double dt, std::ostream &out) const;
 };
 
 #endif

@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <cmath>
 #include <fstream>
+#include <json/json.h>
 
 #include "state.hpp"
 
@@ -27,7 +28,7 @@
 // Using the Tait-Bryan version of the Euler-angels
 // Specifically the nautical or Cardan angles
 //=========================================================
-Matrix GetRotation(Vector rad)
+Matrix GetRotation(const Vector &rad)
 {
    Matrix R;
    if (rad.size() == 1)
@@ -40,13 +41,14 @@ Matrix GetRotation(Vector rad)
    }
    else if (rad.size() == 3)
    {
-      Matrix Zalpha, Ybeta, Xgamma;
-      Resize(3, Zalpha);
-      Zalpha[0][0] = cos(rad[0]);
-      Zalpha[0][1] = -sin(rad[0]);
-      Zalpha[1][0] = -Zalpha[0][1];
-      Zalpha[1][1] = Zalpha[0][0];
-      Zalpha[2][2] = 1.0;
+      Matrix Zgamma, Ybeta, Xalpha;
+
+      Resize(3, Xalpha);
+      Xalpha[0][0] = 1.0;
+      Xalpha[1][1] = cos(rad[0]);
+      Xalpha[1][2] = -sin(rad[0]);
+      Xalpha[2][1] = -Xalpha[1][2];
+      Xalpha[2][2] = Xalpha[1][1];
 
       Resize(3, Ybeta );
       Ybeta[0][0] = cos(rad[1]);
@@ -55,14 +57,14 @@ Matrix GetRotation(Vector rad)
       Ybeta[2][0] = -Ybeta[0][2];
       Ybeta[2][2] = Ybeta[0][0];
 
-      Resize(3, Xgamma);
-      Xgamma[0][0] = 1.0;
-      Xgamma[1][1] = cos(rad[2]);
-      Xgamma[1][2] = -sin(rad[2]);
-      Xgamma[2][1] = -Xgamma[1][2];
-      Xgamma[2][2] = Xgamma[1][1];
+      Resize(3, Zgamma);
+      Zgamma[0][0] = cos(rad[2]);
+      Zgamma[0][1] = -sin(rad[2]);
+      Zgamma[1][0] = -Zgamma[0][1];
+      Zgamma[1][1] = Zgamma[0][0];
+      Zgamma[2][2] = 1.0;
 
-      R = Zalpha*Ybeta*Xgamma;
+      R = Xalpha*Ybeta*Zgamma;
    }
    else
    {
@@ -71,6 +73,29 @@ Matrix GetRotation(Vector rad)
    }
    return R;
 }
+
+Vector GetRotation(const Matrix &R)
+{
+   int dim = R.size();
+   Vector theta((dim*(dim-1))/2);
+   if (R.size() == 2)
+   {
+      theta[0] = atan(-R[1][0]/R[1][1]);
+   }
+   else if (R.size()== 3)
+   {
+      theta[0] = atan2(-R[1][2],R[2][2]);
+      theta[1] = asin(R[0][2]);
+      theta[2] = atan2(-R[0][1],R[0][0]);
+      if (fabs(theta[1]) > 1.5) { std::cout<<" "<<std::endl; }
+   }
+   else
+   {
+      abort();
+   }
+   return theta;
+}
+
 
 //=========================================================
 // Define the rigid body class
@@ -83,8 +108,11 @@ State::State(int dim_)
 State::State(const State &org)
 {
    dim = org.dim;
+   rdim = org.rdim;
+   t = org.t;
    x = org.x;
    v = org.v;
+   theta = org.theta;
    R = org.R;
    w = org.w;
    I = org.I;
@@ -93,9 +121,12 @@ State::State(const State &org)
 void State::Initialize(int dim_)
 {
    dim = dim_;
+   rdim = (dim*(dim-1))/2;
+   t = 0.0;
    Resize(dim, x);
    Resize(dim, v);
-   Resize((dim*(dim-1))/2, w);
+   Resize(rdim, w);
+   Resize(rdim, theta);
    Resize(dim, R);
    for (int i = 0; Vector &vec: R)
    {
@@ -106,7 +137,7 @@ void State::Initialize(int dim_)
 
 void State::SetInertiaTensor(Matrix &I0)
 {
-   assert(I0.size() == (dim*(dim-1))/2);
+   assert(I0.size() == rdim);
 
    if (dim == 2)
    {
@@ -145,88 +176,159 @@ void State::CheckRotation(double tol) const
 bool State::Equal(const State &org, double tol) const
 {
    assert(dim == org.dim);
+   assert(rdim == org.rdim);
+   double dt = t - org.t;
    Vector dx = x - org.x;
    Vector dv = v - org.v;
+   Vector dtheta = theta - org.theta;
    Matrix dR = R - org.R;
    Vector dw = w - org.w;
 
-   return (Norm(dx) < tol) &&
-          (Norm(dv) < tol) &&
-          (Norm(dR) < tol) &&
-          (Norm(dw) < tol);
+   bool check = (fabs(dt) < tol) &&
+                (Norm(dx) < tol) &&
+                (Norm(dv) < tol) &&
+                (Norm(dtheta) < tol) &&
+                (Norm(dR) < tol) &&
+                (Norm(dw) < tol);
+
+   if (!check)
+   {
+      std::cout<<"dt = "<<dt<<std::endl;
+      PrintVector(std::cout, dx, "dx");
+      PrintVector(std::cout, dv, "dv");
+      PrintVector(std::cout, dtheta, "dtheta");
+      PrintMatrix(std::cout, dR, "dR");
+      PrintVector(std::cout, dw, "dw");
+   }
+
+   return check;
 }
 
-void State::Read(std::string fileName, std::string stateName)
+bool State::Read(std::string fileName, std::string stateName)
 {
    std::ifstream file(fileName.c_str(), std::ifstream::binary);
    if (!file)
    {
       std::cout<<"File "<<fileName<<" could not be opened!\n";
-      abort();
+      return false;
    }
    Json::Value data;
    file >> data;
+   if (!data.isMember(stateName))
+   {
+      std::cout<<"Could not find "<<stateName<<" in file "<<fileName<<"\n";
+      return false;
+   }
    Read(data[stateName]);
+   return true;
 }
 
 void State::Read(Json::Value &data)
 {
    // Read state data -- zero if not defined
+   t = data["t"].asDouble();
+
    // Displacement
    json2vector(data, "x", x);
-   PrintVector(std::cout, x, "x");
 
    // Velocity
    json2vector(data, "v", v);
-   PrintVector(std::cout, v, "v");
 
    // Angular Velocity
-   PrintVector(std::cout, w, "w");
    json2vector(data, "w", w);
 
-   PrintVector(std::cout, w, "w");
-   // Rotation
+   // Rotation matrix
    if (data.isMember("angles_deg"))
    {
-      Vector angles_deg;
-      json2vector(data["angles_deg"], angles_deg);
-      assert(angles_deg.size() == (dim*(dim-1))/2);
-      for (double &d: angles_deg)
+      json2vector(data["angles_deg"], theta);
+      assert(theta.size() == rdim);
+      for (double &d: theta)
       {
          d *= M_PI/180;
       }
 
-      R = GetRotation(angles_deg);
+      R = GetRotation(theta);
    }
    else if (data.isMember("radians"))
    {
-      Vector radians;
-      json2vector(data["radians"], radians);
-      assert(radians.size()  == (dim*(dim-1))/2);
-      R = GetRotation(radians);
+      json2vector(data["radians"], theta);
+      assert(theta.size()  == rdim);
+      R = GetRotation(theta);
    }
    else if (data.isMember("R"))
    {
       json2matrix(data["R"], R);
       assert(R.size() == dim);
+      theta = GetRotation(R);
    }
    else
    {
+      Resize(dim, theta);
       Resize(dim, R);
       for (int i = 0; Vector &vec: R)
       {
          vec[i++] = 1.0;
       }
    }
+
+   // Rotation angles
+   json2vector(data, "theta", theta);
 };
 
-void State::Print(std::ostream &out) const
+void State::PrettyPrint(std::ostream &out) const
 {
+   out<<"t = "<<t<<std::endl;
    PrintVector(out, x, "x");
    PrintVector(out, v, "v");
 
+   PrintVector(out, theta, "theta");
    PrintMatrix(out, R, "R");
    PrintVector(out, w, "w");
 }
 
+void State::PrintJson(std::ostream &out) const
+{
+   Json::Value j(Json::objectValue);
+   j["t"] = t;
+
+   //  Json::json j;// = x;
+
+   j["x"] = to_json(x);
+   j["v"] = to_json(v);
+
+   j["theta"] = to_json(theta);
+   j["R"] = to_json(R);
+   j["w"] = to_json(w);
+
+   out<<j<<std::endl;
+}
+
+void State::PrintHeader( std::ostream &out) const
+{
+   int ii = 0;
+   out<<"#"<<ii++<<":t "<<ii++<<":dt ";
+   for (int i = 0; const double &d: x) { out<<ii++<<":x_"<<i++<<" "; }
+   for (int i = 0; const double &d: v) { out<<ii++<<":v_"<<i++<<" "; }
+
+   for (int i = 0; const double &d: theta) { out<<ii++<<":theta_"<<i++<<" "; }
+   for (int i = 0; const Vector &vec: R)
+   {
+      for (int j = 0; const double &d: vec) { out<<ii++<<":R"<<i<<j++<<" "; }
+   }
+   for (int i = 0; const double &d: w) { out<<ii++<<":w_"<<i++<<" "; }
+   out<<std::endl;
+}
+
+void State::Print(double dt, std::ostream &out) const
+{
+   out<<t<<" "<<dt;
+   for (const double &d: x) { out<<" "<<d; }
+   for (const double &d: v) { out<<" "<<d; }
+
+   for (const double &d: theta) { out<<" "<<d; }
+   for (const Vector &vec: R)
+      for (const double &d: vec) { out<<" "<<d; }
+   for (const double &d: w) { out<<" "<<d; }
+   out<<std::endl;
+}
 

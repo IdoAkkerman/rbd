@@ -36,6 +36,25 @@ void Resize(int dim, Matrix&A)
 }
 
 //=========================================================
+// Matrix SetBlock
+//=========================================================
+void SetBlock(Matrix&A, int ii, int jj, const Matrix&B)
+{
+   assert( A.size() == 2*B.size() );
+
+   int n = B.size();
+   int i,j;
+
+   for (i = 0; i < n; i++)
+   {
+      for (j = 0; j < n; j++)
+      {
+         A[i+ii*n][j+jj*n] = B[i][j];
+      }
+   }
+}
+
+//=========================================================
 // Check Matrix properties
 //=========================================================
 bool isSymmetric(const Matrix&A, double tol)
@@ -78,7 +97,7 @@ double determinant(const Matrix &A)
    }
    else if (A.size() == 2)
    {
-     det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+      det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
    }
    else if (A.size() == 3)
    {
@@ -306,20 +325,20 @@ double Norm(const Matrix &A)
 //=========================================================
 Matrix Inverse(const Matrix &m, double tol)
 {
-   assert( m.size() <= 3 );
-   double det = determinant(m);
-
-   assert(fabs(det) > tol);
-   double invdet = 1.0 / det;
-
    Matrix inv;
    if (m.size() == 1)
    {
+      double det = determinant(m);
+      assert(fabs(det) > tol);
+      double invdet = 1.0 / det;
       Resize(1, inv);
       inv[0][0] = invdet;
    }
    else if (m.size() == 2)
    {
+      double det = determinant(m);
+      assert(fabs(det) > tol);
+      double invdet = 1.0 / det;
       Resize(2, inv);
       inv[0][0] = m[1][1] * invdet;
       inv[0][1] = -m[0][1] * invdet;
@@ -328,6 +347,9 @@ Matrix Inverse(const Matrix &m, double tol)
    }
    else if (m.size() == 3)
    {
+      double det = determinant(m);
+      assert(fabs(det) > tol);
+      double invdet = 1.0 / det;
       Resize(3, inv);
       inv[0][0] = (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invdet;
       inv[0][1] = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invdet;
@@ -341,7 +363,75 @@ Matrix Inverse(const Matrix &m, double tol)
    }
    else
    {
-      abort();
+      inv = m;
+
+      int c, i, j, n = m.size();
+      double a, b;
+      std::vector<int> piv(n);
+
+      for (c = 0; c < n; c++)
+      {
+         a = fabs(inv[c][c]);
+         i = c;
+         for (j = c + 1; j < n; j++)
+         {
+            b = fabs(inv[j][c]);
+            if (a < b)
+            {
+               a = b;
+               i = j;
+            }
+         }
+         assert(a != 0.0);
+         piv[c] = i;
+         for (j = 0; j < n; j++)
+         {
+            std::swap<double>(inv[c][j], inv[i][j]);
+         }
+
+         a = inv[c][c] = 1.0 / inv[c][c];
+         for (j = 0; j < c; j++)
+         {
+            inv[c][j] *= a;
+         }
+         for (j++; j < n; j++)
+         {
+            inv[c][j] *= a;
+         }
+         for (i = 0; i < c; i++)
+         {
+            inv[i][c] = a * (b = -inv[i][c]);
+            for (j = 0; j < c; j++)
+            {
+               inv[i][j] += b * inv[c][j];
+            }
+            for (j++; j < n; j++)
+            {
+               inv[i][j] += b * inv[c][j];
+            }
+         }
+         for (i++; i < n; i++)
+         {
+            inv[i][c] = a * (b = -inv[i][c]);
+            for (j = 0; j < c; j++)
+            {
+               inv[i][j] += b * inv[c][j];
+            }
+            for (j++; j < n; j++)
+            {
+               inv[i][j] += b * inv[c][j];
+            }
+         }
+      }
+
+      for (c = n - 1; c >= 0; c--)
+      {
+         j = piv[c];
+         for (i = 0; i < n; i++)
+         {
+            std::swap<double>(inv[i][c], inv[i][j]);
+         }
+      }
    }
 
    return inv;
@@ -354,7 +444,7 @@ Matrix Skew(const Vector &v)
 {
    assert((v.size() == 1) || (v.size() == 3));
    Matrix sk;
-   
+
    if (v.size() == 1)
    {
       Resize(2, sk);
@@ -366,9 +456,10 @@ Matrix Skew(const Vector &v)
       Resize(3, sk);
       sk[0][1] = -v[2];
       sk[0][2] = v[1];
-      sk[1][2] = -v[0];
 
       sk[1][0] = v[2];
+      sk[1][2] = -v[0];
+
       sk[2][0] = -v[1];
       sk[2][1] = v[0];
    }
@@ -386,20 +477,20 @@ Matrix Skew(const Vector &v)
 //=========================================================
 void PrintMatrix(std::ostream &out, const Matrix &mat, const std::string &key)
 {
-   std::string s(0, ' ');
+   std::string s(1, ' ');
    if (key == "")
    {
-      out<<"\n";
+      out<<"\n[";
    }
    else
    {
       out<<key<<" = ";
-      s.append(3+key.length(), ' ');
+      s.append(2+key.length(), ' ');
    }
 
-   for (int i = 0;const Vector &vec: mat)
+   for (int i = 0; const Vector &vec: mat)
    {
-      if (i++ != 0) out<<s;
+      if (i++ != 0) { out<<s; }
       PrintVector(out, vec);
    }
 }
@@ -417,4 +508,23 @@ void json2matrix(Json::Value& jv, Matrix &m)
       assert(m[i].size() == dim);   // Force the matrix to be square
    }
 }
+
+void json2matrix(Json::Value& jv, const char *key, Matrix &m)
+{
+   int dim = m.size();
+   if (!jv.isMember(key)) { return; }
+   json2matrix(jv[key], m);
+   assert(dim == m.size());
+}
+
+Json::Value to_json(const Matrix &m)
+{
+   Json::Value  jv(Json::arrayValue);
+   for (const Vector &v: m)
+   {
+      jv.append(to_json(v));
+   }
+   return jv;
+}
+
 

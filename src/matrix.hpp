@@ -36,6 +36,11 @@ typedef std::vector<Vector> Matrix;
 void Resize(int dim, Matrix&A);
 
 //=========================================================
+// Matrix SetBlock
+//=========================================================
+void SetBlock(Matrix&A, int ii, int jj, const Matrix&B);
+
+//=========================================================
 // Check Matrix properties
 //=========================================================
 double det(const Matrix &A);
@@ -96,11 +101,15 @@ Matrix Skew(const Vector &v);
 //=========================================================
 // Matrix print routine
 //=========================================================
-void PrintMatrix(std::ostream &out, const Matrix &mat, const std::string &key = "");
+void PrintMatrix(std::ostream &out, const Matrix &mat,
+                 const std::string &key = "");
 
 //=========================================================
 // Matrix Json conversion routines
 //=========================================================
 void json2matrix(Json::Value& jv, Matrix &m);
+void json2matrix(Json::Value& jv, const char *key, Matrix &m);
+
+Json::Value to_json(const Matrix &m);
 
 #endif

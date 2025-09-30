@@ -36,30 +36,53 @@ using namespace precice;
 void test(char* fileName)
 {
    RigidBody rb(fileName, "rigid_body");
+   rb.SetVerbose();
 
-   double dt = rb.GetTimeStep();
-   double t = 0;
    Vector forces;
-   Resize(2*rb.GetDimension(), forces);
-   forces[1] = 1.0;
-   forces[2] = 2.0;
-   forces[3] = 1.0;
-   for (int i = 0; i <100; i++)
-   {
-      std::cout<<"========================"<<std::endl;
-      std::cout<<i<<": t = "<<t<<std::endl;
-      std::cout<<"========================"<<std::endl;
-      rb.ComputeMotion(dt, forces);
-      rb.GetNewState().CheckRotation(1e-8);
+   Resize(rb.GetDimension(), forces);
+   for (int i = 0; i <forces.size(); i++) { forces[i] = i+1; }
 
-      rb.GetNewState().Print(std::cout);
+   Vector moments;
+   Resize(rb.GetRDimension(), moments);
+   for (int i = 0; i <moments.size(); i++) { moments[i] = i+1; }
+
+   std::fstream fs;
+   fs.open ("test.txt", std::fstream::out);
+   rb.GetOldState().PrintHeader(fs);
+   rb.GetOldState().Print(0.0,fs);
+   rb.GetOldState().PrettyPrint(std::cout);
+   for (int i = 0; i <1000; i++)
+   {
+      double dt = rb.GetTimeStep();
+      std::cout<<"==========================================="<<std::endl;
+      std::cout<<i+1<<" "<<dt<<": "<<rb.GetOldState().t
+               <<" --> "<<rb.GetOldState().t+dt<<std::endl;
+      std::cout<<"==========================================="<<std::endl;
+      rb.ComputeMotion(dt, forces, moments);
+      rb.GetNewState().CheckRotation(1e-12);
+
       rb.EndTimeStep();
-      t += dt;
+
+      rb.GetNewState().PrettyPrint(std::cout);
+      rb.GetOldState().Print(dt,fs);
    }
 
    State ref(rb.GetDimension());
-   ref.Read(fileName, "ref_condition");
-   assert(rb.GetNewState().Equal(ref, 1e-6));
+   bool hasRef = ref.Read(fileName, "ref_condition");
+   if (hasRef)
+   {
+      // Compare
+      bool isEqual = rb.GetNewState().Equal(ref, 1e-12);
+      if (isEqual) { std::cout<<"Solution matches reference!! \n"; }
+      assert(isEqual);
+   }
+   else
+   {
+      std::cout<<"\"ref_condition\" : \n";
+      rb.GetNewState().PrintJson(std::cout);
+      std::cout<<std::flush;
+      abort();
+   }
 }
 
 Vector computeDisplacements() {Vector disp; return disp;};
@@ -112,6 +135,7 @@ int main(int argc, char **argv)
    participant.initialize();
 
    const int dimensions = participant.getMeshDimensions(meshName);
+   const int rdim = (dimensions*(dimensions - 1))/2;
    const int vertexSize = participant.getMeshVertexSize(meshName);
 
    std::vector<double>  coordinates(vertexSize * dimensions);
@@ -122,10 +146,12 @@ int main(int argc, char **argv)
                                               coordinates);
 
    const int forceDim = participant.getDataDimensions(meshName, "Forces");
+   const int momDim = participant.getDataDimensions(meshName, "Moments");
    const int displDim = participant.getDataDimensions(meshName, "Displacements");
    const int velDim = participant.getDataDimensions(meshName, "Velocities");
 
    std::vector<double> forces(vertexSize*dimensions);
+   std::vector<double> moments(vertexSize*rdim);
 
    // Main timestepping/iteration loop
    while (participant.isCouplingOngoing())
@@ -138,9 +164,10 @@ int main(int argc, char **argv)
       double solverDt = rb.GetTimeStep();
       double dt = std::min(preciceDt, solverDt);
 
-      participant.readData(meshName, "Displacements", vertexIDs, dt, forces);
+      participant.readData(meshName, "Forces", vertexIDs, dt, forces);
+      participant.readData(meshName, "Moments", vertexIDs, dt, moments);
 
-      rb.ComputeMotion(dt, forces);
+      rb.ComputeMotion(dt, forces, moments);
 
       if (displDim != -1)
       {

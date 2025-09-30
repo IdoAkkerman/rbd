@@ -61,12 +61,15 @@ double Norm(const Vector &v);
 //=========================================================
 // Vector print routine
 //=========================================================
-void PrintVector(std::ostream &out, const Vector &vec, const std::string &key = "");
+void PrintVector(std::ostream &out, const Vector &vec,
+                 const std::string &key = "");
 
 //=========================================================
 // Vector Json conversion routines
 //=========================================================
 void json2vector(Json::Value& jv, Vector &v);
 void json2vector(Json::Value& jv, const char *key, Vector &v);
+
+Json::Value to_json(const Vector &v);
 
 #endif

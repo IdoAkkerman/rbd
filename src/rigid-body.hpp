@@ -33,13 +33,23 @@
 class RigidBody
 {
 private:
-   int dim = -1; // Dimension of the problem (2D/3D)
+   int dim = -1;       // Dimension of the problem (2D/3D)
+   int rdim = -1;      // Dimension of the rotational problem
 
-   double m;     // Mass
-   Matrix I0;    // Mass moment of inertia tensor
+   double m;           // Mass
+   Matrix Ct, Kt;      // Translational damping and stiffness matrices
+   Matrix I0;          // Mass moment of inertia tensor
+   Matrix Cr, Kr;      // Rotational damping and stiffness matrices
+   bool hasKr = false;
 
-   double dt_max;
-   int iter = -1;
+   Matrix A1_inv,A0;   // Translational amplification matrix
+   double dt_A = 0;    // Time step of translational amplification matrix
+
+   double dt_max = 0.0;      // Maximum time step
+   double theta_max = 0.0;   // Maximum rotation per time step
+   int iter = -1;            // Iteration counter
+   bool verbose = false;
+
 
    State state_old, state_new;
 
@@ -54,14 +64,17 @@ public:
 
    // Info
    int GetDimension() {return dim;};
+   int GetRDimension() {return rdim;};
    int GetIterationCount() {return iter;};
    void Print(std::ostream &out = std::cout);
    State& GetNewState() { return state_new; };
    State& GetOldState() { return state_old; };
 
+   void SetVerbose(bool verb = true) { verbose = verb;};
+
    // Time stepping routines
-   double GetTimeStep() {return dt_max;};
-   void ComputeMotion(double dt, Vector &forces,
+   double GetTimeStep();
+   void ComputeMotion(double dt, Vector &F, Vector &M,
                       int iter_max = 100,
                       double tol = 1e-8);
 
