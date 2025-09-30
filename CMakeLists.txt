@@ -1,11 +1,5 @@
 #-------------------------------------------------------------------------------
-# This file is part of the RBVMS application.
-#
-# This is the superbuild file.
-#
-# RBVMS is free software; you can redistribute it and/or modify it under the
-# terms of the BSD-3 license. We welcome feedback and contributions, see file
-# CONTRIBUTING.md for details.
+# This file is part of the RBD application
 #-------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.8...4.99)
 project("Rigid-Body Dynamics" LANGUAGES CXX)
@@ -55,18 +49,9 @@ target_link_libraries(rbd PRIVATE  ${LIBRARIES})
 install(TARGETS rbd DESTINATION bin)
 
 #-------------------------------------------------------------------------------
-# Add test
+# Add examples
 #-------------------------------------------------------------------------------
-add_custom_target(examples ALL)
-add_custom_command(TARGET examples
-                   POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/examples
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/* ${CMAKE_BINARY_DIR}/examples)
-
 enable_testing()
-add_test(NAME rbd         COMMAND rbd examples/rb_2d.json)
-add_test(NAME rbd_matrix  COMMAND rbd examples/rb_matrix.json)
-add_test(NAME rbd_angles  COMMAND rbd examples/rb_angles.json)
-add_test(NAME rbd_radians COMMAND rbd examples/rb_radians.json)
+add_subdirectory(examples)
 
 
